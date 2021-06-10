@@ -1,161 +1,79 @@
-const tickets = [];
-
 const http = require('http');
 const Koa = require('koa');
+const Router = require('koa-router');
+const cors = require('koa2-cors');
 const koaBody = require('koa-body');
-
-const fullToShort = () => JSON.stringify(tickets.map(
-  ({
-    id, name, status, created,
-  }) => ({
-    id, name, status, created,
-  }),
-));
 
 const app = new Koa();
 
-app.use(koaBody({
-  urlencoded: true,
-}));
+app.use(cors());
+app.use(koaBody({ json: true }));
 
-app.use(async (ctx, next) => {
-  const origin = ctx.request.get('Origin');
+const router = new Router();
 
-  if (!origin) {
-    return next();
-  }
+const { PassThrough } = require('stream');
+const request = require('request');
 
-  const headers = { 'Access-Control-Allow-Origin': '*' };
+const imageSrc = '/image/cross.jpg';
 
-  if (ctx.request.method !== 'OPTIONS') {
-    ctx.response.set({ ...headers });
-    try {
-      return next();
-    } catch (e) {
-      e.headers = { ...e.headers, ...headers };
-      throw e;
-    }
-  }
+const news = [
+  {
+    text: '"После ужина с продюсером меня пригласили на главную роль" - интервью с известной актрисой',
+    image: imageSrc,
+    timestamp: Date.now() - 1054800000,
+  },
+  {
+    text: '"Седой против Чужого" - майор полиции в отставке борется с инопланетными захватчиками. Скоро на экранах страны',
+    image: imageSrc,
+    timestamp: Date.now() - 564801000,
+  },
+  {
+    text: '"Гарри Поттер и пробирка с ковидом" - успех или провал нового блокбастера?',
+    image: imageSrc,
+    timestamp: Date.now() - 367899000,
+  },
+  {
+    text: '"Ну тогда огонь, огонь" - боевик про службу гея в спецназе США. Начало показов на будущей неделе',
+    image: imageSrc,
+    timestamp: Date.now() - 54545000,
+  },
+  {
+    text: '"Восстание машин" - история одной ошибки программиста на JS. Премьера фильма',
+    image: imageSrc,
+    timestamp: Date.now() - 3604000,
+  },
+];
 
-  if (ctx.request.get('Access-Control-Request-Method')) {
-    ctx.response.set({
-      ...headers,
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH',
-    });
-    if (ctx.request.get('Access-Control-Request-Headers')) {
-      ctx.response.set('Access-Control-Allow-Headers', ctx.request.get('Access-Control-Allow-Request-Headers'));
-    }
-    ctx.response.status = 204;
-  }
+const getNews = () => news.filter((item, index) => index < 2 || Math.random() < 0.75);
 
-  return null;
+router.get('/news/slow', async (ctx) => {
+  await new Promise((resolve) => {
+    setTimeout(() => resolve(), 5000);
+  });
+  ctx.response.body = getNews();
 });
 
-app.use(async (ctx, next) => {
-  if (ctx.request.method !== 'GET') {
-    return next();
-  }
-
-  const {
-    method,
-    id: reqId,
-  } = ctx.request.query;
-
-  let ticket;
-
-  switch (method) {
-    case 'allTickets':
-      ctx.response.body = fullToShort();
-      return null;
-
-    case 'ticketById':
-      ticket = tickets.find(
-        ({ id }) => id === +reqId,
-      );
-
-      if (!ticket) {
-        ctx.response.status = 404;
-        return null;
-      }
-
-      ctx.response.body = ticket.description;
-      return null;
-
-    default:
-      ctx.response.status = 400;
-      return null;
+router.get('/news/broken', async (ctx) => {
+  if (Math.random() < 0.5) {
+    ctx.response.body = getNews();
+  } else {
+    ctx.response.status = 500;
+    ctx.response.body = { status: 'Internal Error' };
   }
 });
 
-app.use(async (ctx, next) => {
-  if (ctx.request.method !== 'POST') {
-    return next();
-  }
-
-  const {
-    method,
-    id: reqId,
-    name: reqName,
-    description: reqDescription,
-    status: reqStatus,
-  } = ctx.request.body;
-
-  let ticket;
-  let index;
-
-  switch (method) {
-    case 'createTicket':
-      if (!reqId) {
-        tickets.push({
-          id: tickets.length ? tickets[tickets.length - 1].id + 1 : 1,
-          name: reqName,
-          description: reqDescription,
-          status: reqStatus,
-          created: Date.now(),
-        });
-
-        ctx.response.body = fullToShort();
-        return null;
-      }
-
-      ticket = tickets.find(
-        ({ id }) => id === +reqId,
-      );
-
-      if (!ticket) {
-        ctx.response.status = 404;
-        return null;
-      }
-
-      ticket.name = reqName;
-      ticket.description = reqDescription;
-      ticket.status = reqStatus;
-      ctx.response.body = fullToShort();
-      return null;
-
-    case 'deleteTicket':
-      index = tickets.findIndex(
-        ({ id }) => id === +reqId,
-      );
-
-      if (index < 0) {
-        ctx.response.status = 404;
-        return null;
-      }
-
-      tickets.splice(index, 1);
-      ctx.response.body = fullToShort();
-      return null;
-
-    default:
-      ctx.response.status = 400;
-      return null;
-  }
+router.get(imageSrc, (ctx) => {
+  const url = 'https://ahj-12-2.herokuapp.com/img/cross.jpg';
+  ctx.set('Content-Type', 'image/jpeg');
+  ctx.body = request(url).pipe(PassThrough());
 });
 
-app.use(async (ctx) => {
-  ctx.response.status = 405;
+router.get('/', async (ctx) => {
+  ctx.response.body = 'Сервер работает';
 });
+
+app.use(router.routes()).use(router.allowedMethods());
 
 const port = process.env.PORT || 7070;
-http.createServer(app.callback()).listen(port);
+const server = http.createServer(app.callback());
+server.listen(port);
