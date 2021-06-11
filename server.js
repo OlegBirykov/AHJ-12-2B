@@ -3,6 +3,7 @@ const Koa = require('koa');
 const Router = require('koa-router');
 const cors = require('koa2-cors');
 const koaBody = require('koa-body');
+const serve = require('koa-static');
 
 const app = new Koa();
 
@@ -11,35 +12,33 @@ app.use(koaBody({ json: true }));
 
 const router = new Router();
 
-const { PassThrough } = require('stream');
-const request = require('request');
-
-const imageSrc = '/image/cross.jpg';
+// const { PassThrough } = require('stream');
+// const request = require('request');
 
 const news = [
   {
     text: '"После ужина с продюсером меня пригласили на главную роль" - интервью с известной актрисой',
-    image: imageSrc,
+    image: 1,
     timestamp: Date.now() - 1054800000,
   },
   {
     text: '"Седой против Чужого" - майор полиции в отставке борется с инопланетными захватчиками. Скоро на экранах страны',
-    image: imageSrc,
+    image: 1,
     timestamp: Date.now() - 564801000,
   },
   {
     text: '"Гарри Поттер и пробирка с ковидом" - успех или провал нового блокбастера?',
-    image: imageSrc,
+    image: 1,
     timestamp: Date.now() - 367899000,
   },
   {
-    text: '"Ну тогда огонь, огонь" - боевик про службу гея в спецназе США. Начало показов на будущей неделе',
-    image: imageSrc,
+    text: '"Ну тогда огонь, огонь" - приключения гея-афроамериканца на военной службе. Начало показов на будущей неделе',
+    image: 1,
     timestamp: Date.now() - 54545000,
   },
   {
     text: '"Восстание машин" - история одной ошибки программиста на JS. Премьера фильма',
-    image: imageSrc,
+    image: 1,
     timestamp: Date.now() - 3604000,
   },
 ];
@@ -62,17 +61,18 @@ router.get('/news/broken', async (ctx) => {
   }
 });
 
-router.get(imageSrc, (ctx) => {
-  const url = 'https://ahj-12-2.herokuapp.com/img/cross.jpg';
-  ctx.set('Content-Type', 'image/jpeg');
-  ctx.body = request(url).pipe(PassThrough());
-});
+// router.get('/images/1', (ctx) => {
+//  const url = 'http://localhost:7070/img/cross.jpg';
+//  ctx.set('Content-Type', 'image/jpeg');
+//  ctx.body = request(url).pipe(PassThrough());
+// });
 
 router.get('/', async (ctx) => {
   ctx.response.body = 'Сервер работает';
 });
 
 app.use(router.routes()).use(router.allowedMethods());
+app.use(serve('./img'));
 
 const port = process.env.PORT || 7070;
 const server = http.createServer(app.callback());
