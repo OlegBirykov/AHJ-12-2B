@@ -12,8 +12,8 @@ app.use(koaBody({ json: true }));
 
 const router = new Router();
 
-// const { PassThrough } = require('stream');
-// const request = require('request');
+const { PassThrough } = require('stream');
+const request = require('request');
 
 const news = [
   {
@@ -61,11 +61,21 @@ router.get('/news/broken', async (ctx) => {
   }
 });
 
-// router.get('/images/1', (ctx) => {
-//  const url = 'http://localhost:7070/img/cross.jpg';
-//  ctx.set('Content-Type', 'image/jpeg');
-//  ctx.body = request(url).pipe(PassThrough());
-// });
+router.get('/images/:id', (ctx) => {
+  let url = `${ctx.request.protocol}://${ctx.request.header.host}`;
+  switch (+ctx.params.id) {
+    case 1:
+      url += '/cross.jpg';
+      break;
+    default:
+      ctx.response.status = 404;
+      ctx.response.body = { status: 'Image Not Found' };
+      return;
+  }
+
+  ctx.set('Content-Type', 'image/jpeg');
+  ctx.response.body = request(url).pipe(PassThrough());
+});
 
 router.get('/', async (ctx) => {
   ctx.response.body = 'Сервер работает';
