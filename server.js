@@ -62,10 +62,10 @@ router.get('/news/broken', async (ctx) => {
 });
 
 router.get('/images/:id', (ctx) => {
-  let url = `${ctx.request.protocol}://${ctx.request.header.host}`;
+  let url = `${ctx.request.protocol}://${ctx.request.header.host}/`;
   switch (+ctx.params.id) {
     case 1:
-      url += '/cross.jpg';
+      url += 'cross.jpg';
       break;
     default:
       ctx.response.status = 404;
